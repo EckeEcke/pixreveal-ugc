@@ -3,7 +3,7 @@ name: Cleanup ugc/pending
 on:
   schedule:
     - cron: '0 4 * * *'   # täglich 04:00 UTC
-  workflow_dispatch:        # manuell auslösbar zum Testen
+  workflow_dispatch:
 
 jobs:
   cleanup:
@@ -27,6 +27,14 @@ jobs:
             fi
           done
 
+      - name: Merge approved JSONs into approved.json
+        run: |
+          find ugc/approved -name "*.json" -type f \
+            | sort \
+            | xargs jq -s '.' \
+            > approved.json
+          echo "$(find ugc/approved -name "*.json" | wc -l) Dateien zusammengeführt."
+
       - name: Commit and push changes
         run: |
           git config user.name  "github-actions[bot]"
@@ -36,6 +44,6 @@ jobs:
             echo "Keine Änderungen – nichts zu committen."
           else
             git add -A
-            git commit -m "chore: remove approved files from ugc/pending"
+            git commit -m "chore: remove approved files from ugc/pending, update approved.json"
             git push
           fi
