@@ -1,0 +1,41 @@
+name: Cleanup ugc/pending
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # täglich 04:00 UTC
+  workflow_dispatch:        # manuell auslösbar zum Testen
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Delete approved pending files
+        run: |
+          find ugc/pending -type f | while read pending_file; do
+            filename=$(basename "$pending_file")
+            approved_file="ugc/approved/$filename"
+
+            if [ -f "$approved_file" ]; then
+              echo "Lösche: $pending_file (in approved vorhanden)"
+              rm "$pending_file"
+            fi
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet HEAD; then
+            echo "Keine Änderungen – nichts zu committen."
+          else
+            git add -A
+            git commit -m "chore: remove approved files from ugc/pending"
+            git push
+          fi
