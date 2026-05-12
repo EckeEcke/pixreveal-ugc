@@ -2,7 +2,7 @@ name: Cleanup ugc/pending
 
 on:
   schedule:
-    - cron: '0 4 * * *'   # täglich 04:00 UTC
+    - cron: "0 4 * * *" # täglich 04:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
+
+      - name: Ensure directories exist
+        run: mkdir -p ugc/pending ugc/approved
 
       - name: Delete approved pending files
         run: |
