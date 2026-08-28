@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 4 * * *" # täglich 04:00 UTC
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ugc/pending/**'
+      - 'ugc/approved/**'
 
 jobs:
   cleanup:
@@ -47,6 +53,6 @@ jobs:
             echo "Keine Änderungen – nichts zu committen."
           else
             git add -A
-            git commit -m "chore: remove approved files from ugc/pending, update approved.json"
+            git commit -m "chore: remove approved files from ugc/pending, update approved.json [skip ci]"
             git push
           fi
