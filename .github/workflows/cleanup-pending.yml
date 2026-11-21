@@ -10,6 +10,11 @@ on:
     paths:
       - 'ugc/pending/**'
       - 'ugc/approved/**'
+      - 'approved.json'
+
+concurrency:
+  group: ugc-publication
+  cancel-in-progress: false
 
 jobs:
   cleanup:
@@ -20,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
+        with:
+          ref: main
 
       - name: Ensure directories exist
         run: mkdir -p ugc/pending ugc/approved
@@ -56,3 +63,21 @@ jobs:
             git commit -m "chore: remove approved files from ugc/pending, update approved.json [skip ci]"
             git push
           fi
+      - name: Publish approved collection to PixReveal
+        env:
+          UGC_SYNC_SECRET: ${{ secrets.UGC_SYNC_SECRET }}
+          UGC_SYNC_URL: ${{ vars.PIXREVEAL_UGC_SYNC_URL || 'https://www.pixreveal.com/api/user-art' }}
+        run: |
+          if [ -z "$UGC_SYNC_SECRET" ]; then
+            echo "Set the UGC_SYNC_SECRET repository secret before publishing."
+            exit 1
+          fi
+          revision=$(git rev-parse HEAD)
+          jq -n --arg revision "$revision" '{revision: $revision}' > "$RUNNER_TEMP/ugc-sync.json"
+          curl --fail-with-body --retry 3 --retry-all-errors --retry-delay 5 \
+            --connect-timeout 10 --max-time 45 \
+            --request POST \
+            --header "Authorization: Bearer $UGC_SYNC_SECRET" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$RUNNER_TEMP/ugc-sync.json" \
+            "$UGC_SYNC_URL"
